@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmotionClass · live face tracking</title>
+    <!-- Font Awesome + Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
+    <!-- face-api.js for face detection -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <style>
+        /* same base styles as before, plus live class adjustments */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        body {
+            background: #F7FFF7;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #app {
+            width: 100%;
+            max-width: 1400px;
+            min-height: 100vh;
+            background: white;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            border-radius: 2rem 2rem 0 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(145deg, #1A535C 0%, #1d6e7a 100%);
+            padding: 20px;
+        }
+        .auth-card {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(8px);
+            width: 420px;
+            padding: 40px 35px;
+            border-radius: 40px;
+            box-shadow: 0 30px 50px rgba(0,40,40,0.3);
+            text-align: center;
+            border: 2px solid #FFE66D;
+        }
+        .auth-card h2 {
+            font-family: 'Pacifico', cursive;
+            font-size: 2.4rem;
+            color: #1A535C;
+            margin-bottom: 5px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .input-group label {
+            display: block;
+            font-weight: 500;
+            color: #1A535C;
+            margin-bottom: 5px;
+        }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #cbedf0;
+            border-radius: 40px;
+            font-size: 1rem;
+            transition: 0.2s;
+            background: white;
+        }
+        .input-group input:focus, .input-group select:focus {
+            border-color: #FF6B6B;
+            outline: none;
+        }
+        .btn {
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 8px 0 #b14545;
+            margin-top: 15px;
+        }
+        .btn:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 0 #b14545;
+        }
+        .auth-footer {
+            margin-top: 25px;
+            font-size: 0.95rem;
+        }
+        .auth-footer a {
+            color: #1A535C;
+            font-weight: 700;
+            text-decoration: none;
+            border-bottom: 2px solid #FFE66D;
+        }
+        .admin-note {
+            background: #FFE66D;
+            padding: 12px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            color: #1A535C;
+            font-weight: 600;
+            margin: 25px 0 10px;
+        }
+        .dashboard {
+            display: flex;
+            min-height: 100vh;
+            background: #f9fcfc;
+        }
+        .side-nav {
+            width: 280px;
+            background: #1A535C;
+            padding: 30px 20px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 10px 0 20px rgba(0,40,40,0.1);
+        }
+        .side-nav .user-greeting {
+            font-size: 1.6rem;
+            font-family: 'Pacifico', cursive;
+            margin-bottom: 40px;
+            color: #FFE66D;
+            word-break: break-word;
+        }
+        .nav-items {
+            flex: 1;
+        }
+        .nav-item {
+            padding: 16px 20px;
+            margin: 8px 0;
+            border-radius: 30px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 1.1rem;
+        }
+        .nav-item i {
+            width: 30px;
+            font-size: 1.3rem;
+            transition: 0.2s;
+        }
+        .nav-item:hover {
+            background: #236c78;
+            transform: scale(1.02);
+        }
+        .nav-item:hover i {
+            transform: scale(1.2);
+            color: #FFE66D;
+        }
+        .nav-item.active {
+            background: #FF6B6B;
+            color: white;
+            box-shadow: 0 5px 0 #b14545;
+        }
+        .logout-btn {
+            background: transparent;
+            border: 2px solid #FFE66D;
+            color: #FFE66D;
+            padding: 14px;
+            border-radius: 40px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 30px;
+        }
+        .logout-btn:hover {
+            background: #FFE66D;
+            color: #1A535C;
+        }
+        .main-content {
+            flex: 1;
+            padding: 35px 40px;
+            overflow-y: auto;
+            background: #f4fcfa;
+        }
+        .admin-row {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        .admin-col {
+            flex: 1 1 300px;
+            background: white;
+            border-radius: 35px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+            border: 2px solid #d7f0f0;
+        }
+        .admin-col h3 {
+            color: #1A535C;
+            font-weight: 600;
+            margin-bottom: 20px;
+            border-left: 8px solid #FF6B6B;
+            padding-left: 15px;
+        }
+        .quote-card {
+            background: white;
+            border-radius: 40px;
+            padding: 30px;
+            box-shadow: 0 20px 30px rgba(26,83,92,0.1);
+            border: 2px solid #FFE66D;
+            margin-bottom: 30px;
+        }
+        .quote-text {
+            font-family: 'Pacifico', cursive;
+            font-size: 2rem;
+            color: #1A535C;
+        }
+        .classroom-name {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: #FF6B6B;
+            line-height: 1.2;
+        }
+        .info-box {
+            background: white;
+            border-radius: 30px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 2px solid #c3e8e8;
+            transition: 0.2s;
+        }
+        .info-box:hover {
+            border-color: #FF6B6B;
+            box-shadow: 0 5px 15px rgba(255,107,107,0.2);
+        }
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+        .badge {
+            background: #FFE66D;
+            color: #1A535C;
+            padding: 5px 15px;
+            border-radius: 40px;
+            font-weight: 600;
+        }
+        .join-btn {
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 1rem;
+        }
+        .join-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .student-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .student-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: #f0f9f9;
+            margin: 8px 0;
+            border-radius: 30px;
+            align-items: center;
+        }
+        .red-box {
+            border: 4px solid #FF6B6B !important;
+            background: #ffe3e3;
+        }
+        .popup-trigger {
+            cursor: pointer;
+            color: #1A535C;
+            font-weight: 600;
+            text-decoration: underline dotted;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 50px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 5px solid #FFE66D;
+        }
+        .close-modal {
+            float: right;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #FF6B6B;
+        }
+        .edit-field {
+            display: flex;
+            margin: 15px 0;
+            gap: 10px;
+            align-items: center;
+        }
+        .edit-field label {
+            width: 130px;
+            font-weight: 500;
+        }
+        .edit-field input {
+            flex: 1;
+            padding: 8px 15px;
+            border-radius: 40px;
+            border: 2px solid #cbedf0;
+        }
+        .icon-hover:hover {
+            transform: scale(1.2);
+            color: #FF6B6B;
+        }
+        .delete-class {
+            color: #FF6B6B;
+            margin-left: 15px;
+            cursor: pointer;
+        }
+        /* live class video */
+        .live-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .video-box {
+            flex: 2;
+            min-width: 400px;
+            background: #1A535C;
+            border-radius: 40px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .video-box video {
+            width: 100%;
+            border-radius: 30px;
+            background: #2c3e50;
+            transform: scaleX(-1); /* mirror for natural feel */
+        }
+        .attention-panel {
+            flex: 1;
+            background: white;
+            border-radius: 40px;
+            padding: 25px;
+            border: 3px solid #FF6B6B;
+        }
+        .attention-timer {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #1A535C;
+            text-align: center;
+        }
+        .warning-text {
+            color: #FF6B6B;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        (function() {
+            // ==================== DATA STORAGE (same as before) ====================
+            const STORAGE_KEYS = {
+                USERS: 'emotion_users',
+                PROFILES: 'emotion_profiles',
+                CLASSES: 'emotion_classes',
+                ATTENDANCE: 'emotion_attendance',
+                ATTENTION: 'emotion_attention',
+                CURRENT_USER: 'emotion_current_user'
+            };
+
+            const defaultUsers = [
+                { username: 'admin', password: 'admin123', role: 'admin', name: 'Admin', department: 'Administration' }
+            ];
+
+            function load(key, defaultVal) {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : defaultVal;
+            }
+            function save(key, val) {
+                localStorage.setItem(key, JSON.stringify(val));
+            }
+
+            if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
+                save(STORAGE_KEYS.USERS, defaultUsers);
+            }
+            if (!localStorage.getItem(STORAGE_KEYS.PROFILES)) {
+                save(STORAGE_KEYS.PROFILES, {});
+            }
+            if (!localStorage.getItem(STORAGE_KEYS.CLASSES)) {
+                save(STORAGE_KEYS.CLASSES, []);
+            }
+            if (!localStorage.getItem(STORAGE_KEYS.ATTENDANCE)) {
+                save(STORAGE_KEYS.ATTENDANCE, {});
+            }
+            if (!localStorage.getItem(STORAGE_KEYS.ATTENTION)) {
+                save(STORAGE_KEYS.ATTENTION, {});
+            }
+
+            let currentUser = null;
+            let currentView = 'home';
+            let faceDetectionInterval = null;
+            let videoStream = null;
+
+            // ==================== RENDER ====================
+            function renderApp() {
+                const app = document.getElementById('app');
+                const userData = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+                if (userData) {
+                    currentUser = JSON.parse(userData);
+                    if (currentUser.role === 'student') renderStudentDashboard();
+                    else if (currentUser.role === 'staff') renderStaffDashboard();
+                    else if (currentUser.role === 'admin') renderAdminDashboard();
+                } else {
+                    renderAuthPage();
+                }
+            }
+
+            // ---------- Auth (unchanged, same as previous) ----------
+            function renderAuthPage(showSignUp = false) {
+                // ... (exactly as before, copy from previous answer) ...
+                // For brevity, I'll keep it compact but functional.
+                const app = document.getElementById('app');
+                if (showSignUp) {
+                    app.innerHTML = `
+                        <div class="auth-container">
+                            <div class="auth-card">
+                                <h2>Join Us</h2>
+                                <div class="sub">create account</div>
+                                <div class="input-group"><label>Full name</label><input type="text" id="signup-name"></div>
+                                <div class="input-group"><label>Username</label><input type="text" id="signup-username"></div>
+                                <div class="input-group"><label>Password</label><input type="password" id="signup-password"></div>
+                                <div class="input-group"><label>Department</label><input type="text" id="signup-dept"></div>
+                                <div class="input-group"><label>Role</label><select id="signup-role"><option value="student">Student</option><option value="staff">Staff</option></select></div>
+                                <button class="btn" id="signup-btn">SIGN UP</button>
+                                <div class="auth-footer">Already have an account? <a href="#" id="go-signin-link">Sign In</a></div>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('signup-btn').addEventListener('click', signupHandler);
+                    document.getElementById('go-signin-link').addEventListener('click', (e) => { e.preventDefault(); renderAuthPage(false); });
+                } else {
+                    app.innerHTML = `
+                        <div class="auth-container">
+                            <div class="auth-card">
+                                <h2>EmotionClass</h2>
+                                <div class="sub">where focus meets feel</div>
+                                <div class="input-group"><label>Username</label><input type="text" id="login-username"></div>
+                                <div class="input-group"><label>Password</label><input type="password" id="login-password"></div>
+                                <button class="btn" id="login-btn">LOG IN</button>
+                                <div class="admin-note"><i class="fas fa-lock"></i> Admin: admin / admin123</div>
+                                <div class="auth-footer">New here? <a href="#" id="go-signup-link">Create account</a></div>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('login-btn').addEventListener('click', loginHandler);
+                    document.getElementById('go-signup-link').addEventListener('click', (e) => { e.preventDefault(); renderAuthPage(true); });
+                }
+            }
+
+            function loginHandler() {
+                const username = document.getElementById('login-username').value.trim();
+                const password = document.getElementById('login-password').value.trim();
+                const users = load(STORAGE_KEYS.USERS, []);
+                const user = users.find(u => u.username === username && u.password === password);
+                if (user) {
+                    currentUser = user;
+                    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+                    renderApp();
+                } else alert('Invalid credentials');
+            }
+
+            function signupHandler() {
+                const name = document.getElementById('signup-name').value.trim();
+                const username = document.getElementById('signup-username').value.trim();
+                const password = document.getElementById('signup-password').value.trim();
+                const dept = document.getElementById('signup-dept').value.trim();
+                const role = document.getElementById('signup-role').value;
+                if (!name || !username || !password || !dept) return alert('All fields required');
+                const users = load(STORAGE_KEYS.USERS, []);
+                if (users.find(u => u.username === username)) return alert('Username exists');
+                const newUser = { username, password, role, name, department: dept };
+                users.push(newUser);
+                save(STORAGE_KEYS.USERS, users);
+                const profiles = load(STORAGE_KEYS.PROFILES, {});
+                profiles[username] = { name, username, department: dept, role, dob: '', place: '', phone: '', father: '', mother: '', parentPhone: '' };
+                save(STORAGE_KEYS.PROFILES, profiles);
+                alert('Account created! Please login.');
+                renderAuthPage(false);
+            }
+
+            // ---------- Student Dashboard (adapted) ----------
+            function renderStudentDashboard() {
+                const app = document.getElementById('app');
+                app.innerHTML = `
+                    <div class="dashboard">
+                        <div class="side-nav">
+                            <div class="user-greeting">👋 ${currentUser.name}</div>
+                            <div class="nav-items">
+                                <div class="nav-item ${currentView === 'home' ? 'active' : ''}" data-view="home"><i class="fas fa-home"></i> Home</div>
+                                <div class="nav-item ${currentView === 'personal' ? 'active' : ''}" data-view="personal"><i class="fas fa-user"></i> Personal Info</div>
+                                <div class="nav-item ${currentView === 'classes' ? 'active' : ''}" data-view="classes"><i class="fas fa-calendar-alt"></i> Classes</div>
+                            </div>
+                            <div class="logout-btn" id="logout"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                        </div>
+                        <div class="main-content" id="student-main"></div>
+                    </div>
+                `;
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        currentView = item.dataset.view;
+                        renderStudentDashboard();
+                    });
+                });
+                document.getElementById('logout').addEventListener('click', logoutHandler);
+                const main = document.getElementById('student-main');
+                if (currentView === 'home') renderStudentHome(main);
+                else if (currentView === 'personal') renderStudentPersonal(main);
+                else if (currentView === 'classes') renderStudentClasses(main);
+            }
+
+            function renderStudentHome(container) {
+                const classes = load(STORAGE_KEYS.CLASSES, []);
+                const now = new Date();
+                const upcoming = classes.filter(c => new Date(c.end) > now).sort((a,b)=>new Date(a.start)-new Date(b.start));
+                container.innerHTML = `
+                    <div class="quote-card">
+                        <div class="classroom-name">🌟 MindSpace</div>
+                        <div class="quote-text">"Learning is a treasure that follows its owner everywhere."</div>
+                    </div>
+                    <h2 style="color:#1A535C;">Today's classes</h2>
+                    ${upcoming.length === 0 ? '<p>No upcoming classes</p>' : ''}
+                    ${upcoming.map(c => {
+                        const start = new Date(c.start);
+                        const end = new Date(c.end);
+                        const canJoin = now >= start && now <= end;
+                        return `
+                            <div class="info-box flex-row" style="justify-content: space-between;" data-class-id="${c.id}">
+                                <div>
+                                    <strong style="font-size:1.3rem;">${c.subject}</strong> <span class="badge">${c.staffName}</span><br>
+                                    <i class="fas fa-clock"></i> ${start.toLocaleString()} — ${end.toLocaleTimeString()}
+                                </div>
+                                <div>
+                                    ${canJoin ? `<button class="join-btn join-class" data-id="${c.id}">Join now</button>` : `<button class="join-btn" disabled>Class inactive</button>`}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                `;
+                document.querySelectorAll('.join-class').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const classId = btn.dataset.id;
+                        joinClassAsStudent(classId);
+                    });
+                });
+            }
+
+            // ----- LIVE CLASS WITH WEBCAM & FACE DETECTION -----
+            async function joinClassAsStudent(classId) {
+                // mark attendance
+                const attendance = load(STORAGE_KEYS.ATTENDANCE, {});
+                if (!attendance[classId]) attendance[classId] = [];
+                if (!attendance[classId].includes(currentUser.username)) {
+                    attendance[classId].push(currentUser.username);
+                    save(STORAGE_KEYS.ATTENDANCE, attendance);
+                }
+                // stop any previous stream
+                if (videoStream) {
+                    videoStream.getTracks().forEach(t => t.stop());
+                }
+                // request camera
+                try {
+                    videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                } catch (err) {
+                    alert('Camera access is required for attention tracking.');
+                    return;
+                }
+                // load face-api models if not already
+                if (!window.faceapi) {
+                    alert('Face detection library not loaded.');
+                    return;
+                }
+                await faceapi.nets.tinyFaceDetector.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/');
+                renderLiveStudentView(classId, videoStream);
+            }
+
+            function renderLiveStudentView(classId, stream) {
+                const main = document.getElementById('student-main');
+                if (!main) return;
+                let noFaceCounter = 0;
+                const ATTENTION_THRESHOLD_SECONDS = 5; // 5 seconds without face -> warning
+                const CHECK_INTERVAL = 1000; // 1 sec
+
+                main.innerHTML = `
+                    <div class="live-container">
+                        <div class="video-box">
+                            <video id="studentVideo" autoplay playsinline></video>
+                        </div>
+                        <div class="attention-panel">
+                            <h2 style="color:#1A535C;">🎥 Attention tracker</h2>
+                            <div class="attention-timer" id="faceTimer">0s</div>
+                            <p>Time without detecting your face:</p>
+                            <div id="warningMsg"></div>
+                            <p style="margin-top:20px;"><i class="fas fa-info-circle"></i> Look at the camera. If no face is seen for 5 seconds, a warning is issued.</p>
+                        </div>
+                    </div>
+                `;
+
+                const video = document.getElementById('studentVideo');
+                video.srcObject = stream;
+                video.onloadedmetadata = () => video.play();
+
+                const timerDisplay = document.getElementById('faceTimer');
+                const warningDiv = document.getElementById('warningMsg');
+
+                // detection loop
+                faceDetectionInterval = setInterval(async () => {
+                    if (!video || video.paused || video.ended) return;
+                    const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
+                    if (detections.length === 0) {
+                        noFaceCounter++;
+                        timerDisplay.innerText = noFaceCounter + 's';
+                        if (noFaceCounter >= ATTENTION_THRESHOLD_SECONDS) {
+                            // trigger warning
+                            warningDiv.innerHTML = '<span class="warning-text">⚠️ Warning: You are not looking at the screen!</span>';
+                            // mark in attention storage
+                            const attention = load(STORAGE_KEYS.ATTENTION, {});
+                            if (!attention[classId]) attention[classId] = { notListening: [] };
+                            if (!attention[classId].notListening.includes(currentUser.username)) {
+                                attention[classId].notListening.push(currentUser.username);
+                                save(STORAGE_KEYS.ATTENTION, attention);
+                            }
+                            // alert every time? only once per threshold? we'll alert once
+                            if (noFaceCounter === ATTENTION_THRESHOLD_SECONDS) {
+                                alert('🔴 You have been looking away for 5 seconds! Please pay attention.');
+                            }
+                        }
+                    } else {
+                        noFaceCounter = 0;
+                        timerDisplay.innerText = '0s';
+                        warningDiv.innerHTML = '';
+                    }
+                }, CHECK_INTERVAL);
+            }
+
+            // ----- other student views (personal, classes) unchanged -----
+            function renderStudentPersonal(container) {
+                const profiles = load(STORAGE_KEYS.PROFILES, {});
+                let profile = profiles[currentUser.username] || {};
+                const classes = load(STORAGE_KEYS.CLASSES, []);
+                const attendance = load(STORAGE_KEYS.ATTENDANCE, {});
+                let attendedCount = 0;
+                Object.keys(attendance).forEach(cid => {
+                    if (attendance[cid].includes(currentUser.username)) attendedCount++;
+                });
+                const total = classes.length;
+                container.innerHTML = `
+                    <div class="quote-card">
+                        <h2 style="color:#1A535C;">Personal details</h2>
+                        <p><strong>ID:</strong> STU-${currentUser.username.slice(0,4)}${Math.floor(Math.random()*1000)}</p>
+                        <div class="edit-field"><label>Name</label><input type="text" id="edit-name" value="${profile.name || ''}"></div>
+                        <div class="edit-field"><label>DOB</label><input type="date" id="edit-dob" value="${profile.dob || ''}"></div>
+                        <div class="edit-field"><label>Place</label><input type="text" id="edit-place" value="${profile.place || ''}"></div>
+                        <div class="edit-field"><label>Phone</label><input type="tel" id="edit-phone" value="${profile.phone || ''}"></div>
+                        <div class="edit-field"><label>Father</label><input type="text" id="edit-father" value="${profile.father || ''}"></div>
+                        <div class="edit-field"><label>Mother</label><input type="text" id="edit-mother" value="${profile.mother || ''}"></div>
+                        <div class="edit-field"><label>Parent phone</label><input type="tel" id="edit-parentPhone" value="${profile.parentPhone || ''}"></div>
+                        <button class="btn" id="saveProfileBtn" style="width:auto; margin-top:20px;">Save changes</button>
+                    </div>
+                    <div class="info-box">
+                        <h3>📊 Attendance summary</h3>
+                        <p>Total classes created: ${total}</p>
+                        <p>Attended: ${attendedCount}</p>
+                        <p>Missed: ${total - attendedCount}</p>
+                    </div>
+                `;
+                document.getElementById('saveProfileBtn')?.addEventListener('click', () => {
+                    profiles[currentUser.username] = {
+                        name: document.getElementById('edit-name').value,
+                        dob: document.getElementById('edit-dob').value,
+                        place: document.getElementById('edit-place').value,
+                        phone: document.getElementById('edit-phone').value,
+                        father: document.getElementById('edit-father').value,
+                        mother: document.getElementById('edit-mother').value,
+                        parentPhone: document.getElementById('edit-parentPhone').value,
+                        username: currentUser.username,
+                        department: currentUser.department,
+                        role: 'student'
+                    };
+                    save(STORAGE_KEYS.PROFILES, profiles);
+                    alert('Profile saved');
+                });
+            }
+
+            function renderStudentClasses(container) {
+                const classes = load(STORAGE_KEYS.CLASSES, []);
+                const attendance = load(STORAGE_KEYS.ATTENDANCE, {});
+                container.innerHTML = `<h2 style="color:#1A535C;">All classes</h2>`;
+                classes.forEach(c => {
+                    const attended = attendance[c.id]?.includes(currentUser.username) ? '✅ Attended' : '❌ Missed';
+                    container.innerHTML += `
+                        <div class="info-box flex-row" style="justify-content: space-between;">
+                            <span><strong>${c.subject}</strong> (${c.staffName})</span>
+                            <span class="badge">${attended}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            // ---------- Staff Dashboard (shortened, but functional) ----------
+            function renderStaffDashboard() {
+                const app = document.getElementById('app');
+                app.innerHTML = `
+                    <div class="dashboard">
+                        <div class="side-nav">
+                            <div class="user-greeting">👩‍🏫 ${currentUser.name}</div>
+                            <div class="nav-items">
+                                <div class="nav-item ${currentView === 'home' ? 'active' : ''}" data-view="home"><i class="fas fa-home"></i> Home</div>
+                                <div class="nav-item ${currentView === 'personal' ? 'active' : ''}" data-view="personal"><i class="fas fa-user"></i> Personal Info</div>
+                                <div class="nav-item ${currentView === 'studentinfo' ? 'active' : ''}" data-view="studentinfo"><i class="fas fa-users"></i> Student Info</div>
+                                <div class="nav-item ${currentView === 'classes' ? 'active' : ''}" data-view="classes"><i class="fas fa-chalkboard-teacher"></i> Classes</div>
+                            </div>
+                            <div class="logout-btn" id="logout"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                        </div>
+                        <div class="main-content" id="staff-main"></div>
+                    </div>
+                `;
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        currentView = item.dataset.view;
+                        renderStaffDashboard();
+                    });
+                });
+                document.getElementById('logout').addEventListener('click', logoutHandler);
+                const main = document.getElementById('staff-main');
+                if (currentView === 'home') main.innerHTML = `<div class="quote-card"><div class="classroom-name">🍎 TeachSpace</div><div class="quote-text">"To teach is to touch a life forever."</div></div>`;
+                else if (currentView === 'personal') renderStaffPersonal(main);
+                else if (currentView === 'studentinfo') renderStaffStudentInfo(main);
+                else if (currentView === 'classes') renderStaffClasses(main);
+            }
+
+            function renderStaffPersonal(container) {
+                const profiles = load(STORAGE_KEYS.PROFILES, {});
+                let profile = profiles[currentUser.username] || { name: currentUser.name };
+                container.innerHTML = `
+                    <div class="quote-card">
+                        <h2>Staff profile</h2>
+                        <div class="edit-field"><label>Name</label><input id="edit-name" value="${profile.name}"></div>
+                        <div class="edit-field"><label>Phone</label><input id="edit-phone" value="${profile.phone || ''}"></div>
+                        <button class="btn" id="saveStaffBtn">Update</button>
+                    </div>
+                `;
+                document.getElementById('saveStaffBtn')?.addEventListener('click', () => {
+                    profiles[currentUser.username] = { 
+                        ...profile, 
+                        name: document.getElementById('edit-name').value,
+                        phone: document.getElementById('edit-phone').value,
+                    };
+                    save(STORAGE_KEYS.PROFILES, profiles);
+                    alert('Saved');
+                });
+            }
+
+            function renderStaffStudentInfo(container) {
+                const users = load(STORAGE_KEYS.USERS, []);
+                const students = users.filter(u => u.role === 'student');
+                container.innerHTML = `<h2>Students by department</h2>`;
+                const deptMap = {};
+                students.forEach(s => { if (!deptMap[s.department]) deptMap[s.department] = []; deptMap[s.department].push(s); });
+                Object.keys(deptMap).forEach(dept => {
+                    container.innerHTML += `<div class="info-box"><h3>${dept}</h3>`;
+                    deptMap[dept].forEach(s => {
+                        container.innerHTML += `
+                            <div class="student-item">
+                                <span>${s.name} (${s.username})</span>
+                                <i class="fas fa-edit edit-student-icon icon-hover" data-user="${s.username}" style="cursor:pointer;"></i>
+                            </div>
+                        `;
+                    });
+                    container.innerHTML += `</div>`;
+                });
+                document.querySelectorAll('.edit-student-icon').forEach(icon => {
+                    icon.addEventListener('click', (e) => openEditStudentModal(icon.dataset.user));
+                });
+            }
+
+            function openEditStudentModal(username) {
+                const profiles = load(STORAGE_KEYS.PROFILES, {});
+                const prof = profiles[username] || {};
+                const modal = document.createElement('div');
+                modal.className = 'modal active';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <span class="close-modal">&times;</span>
+                        <h3>Edit ${username}</h3>
+                        <div class="edit-field"><label>Name</label><input id="modal-name" value="${prof.name || ''}"></div>
+                        <div class="edit-field"><label>DOB</label><input id="modal-dob" value="${prof.dob || ''}"></div>
+                        <div class="edit-field"><label>Place</label><input id="modal-place" value="${prof.place || ''}"></div>
+                        <div class="edit-field"><label>Phone</label><input id="modal-phone" value="${prof.phone || ''}"></div>
+                        <div class="edit-field"><label>Father</label><input id="modal-father" value="${prof.father || ''}"></div>
+                        <div class="edit-field"><label>Mother</label><input id="modal-mother" value="${prof.mother || ''}"></div>
+                        <div class="edit-field"><label>Parent phone</label><input id="modal-parent" value="${prof.parentPhone || ''}"></div>
+                        <button class="btn" id="modal-save">Save</button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                modal.querySelector('.close-modal').onclick = () => modal.remove();
+                modal.querySelector('#modal-save').onclick = () => {
+                    prof.name = document.getElementById('modal-name').value;
+                    prof.dob = document.getElementById('modal-dob').value;
+                    prof.place = document.getElementById('modal-place').value;
+                    prof.phone = document.getElementById('modal-phone').value;
+                    prof.father = document.getElementById('modal-father').value;
+                    prof.mother = document.getElementById('modal-mother').value;
+                    prof.parentPhone = document.getElementById('modal-parent').value;
+                    profiles[username] = prof;
+                    save(STORAGE_KEYS.PROFILES, profiles);
+                    modal.remove();
+                    alert('Updated');
+                };
+            }
+
+            function renderStaffClasses(container) {
+                const classes = load(STORAGE_KEYS.CLASSES, []);
+                const myClasses = classes.filter(c => c.createdBy === currentUser.username);
+                const attendance = load(STORAGE_KEYS.ATTENDANCE, {});
+                const attention = load(STORAGE_KEYS.ATTENTION, {});
+                container.innerHTML = `<h2>Your classes</h2><button class="btn" id="createClassBtn" style="width:auto; margin-bottom:20px;">+ New class</button><div id="classList"></div>`;
+                document.getElementById('createClassBtn').addEventListener('click', showCreateClassModal);
+                const listDiv = document.getElementById('classList');
+                myClasses.forEach(c => {
+                    const attendedCount = attendance[c.id]?.length || 0;
+                    const notListening = attention[c.id]?.notListening || [];
+                    const now = new Date();
+                    const start = new Date(c.start);
+                    const end = new Date(c.end);
+                    const isLive = now >= start && now <= end;
+                    listDiv.innerHTML += `
+                        <div class="info-box" data-id="${c.id}">
+                            <div style="display:flex; justify-content:space-between;">
+                                <span><strong>${c.subject}</strong> (${c.date}) ${c.startTime}-${c.endTime}</span>
+                                <span><i class="fas fa-trash delete-class icon-hover" data-id="${c.id}"></i></span>
+                            </div>
+                            <p>👥 Attended: ${attendedCount} students</p>
+                            <p class="popup-trigger" data-id="${c.id}">📋 Show student list</p>
+                            ${isLive ? `<div class="live-section" data-class="${c.id}"><hr>🔴 LIVE now<br><div id="live-${c.id}">Loading...</div></div>` : ''}
+                        </div>
+                    `;
+                    if (isLive) {
+                        const liveDiv = document.getElementById(`live-${c.id}`);
+                        if (liveDiv) {
+                            const attendees = attendance[c.id] || [];
+                            const users = load(STORAGE_KEYS.USERS, []);
+                            let html = '';
+                            attendees.forEach(uname => {
+                                const user = users.find(u => u.username === uname);
+                                const isRed = notListening.includes(uname);
+                                html += `<div class="student-item ${isRed ? 'red-box' : ''}">${user ? user.name : uname} ${isRed ? '⚠️' : ''}</div>`;
+                            });
+                            liveDiv.innerHTML = html || 'No students joined yet.';
+                        }
+                    }
+                });
+                document.querySelectorAll('.delete-class').forEach(del => {
+                    del.addEventListener('click', (e) => {
+                        const id = del.dataset.id;
+                        const updated = classes.filter(c => c.id !== id);
+                        save(STORAGE_KEYS.CLASSES, updated);
+                        renderStaffClasses(container);
+                    });
+                });
+                document.querySelectorAll('.popup-trigger').forEach(p => {
+                    p.addEventListener('click', (e) => {
+                        const cid = p.dataset.id;
+                        const att = attendance[cid] || [];
+                        const users = load(STORAGE_KEYS.USERS, []);
+                        const names = att.map(uname => users.find(u => u.username === uname)?.name || uname).join(', ');
+                        alert('Students: ' + (names || 'none'));
+                    });
+                });
+            }
+
+            function showCreateClassModal() {
+                const modal = document.createElement('div');
+                modal.className = 'modal active';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <span class="close-modal">&times;</span>
+                        <h3>Create class</h3>
+                        <div class="edit-field"><label>Subject</label><input id="new-subject"></div>
+                        <div class="edit-field"><label>Date</label><input type="date" id="new-date"></div>
+                        <div class="edit-field"><label>Start time</label><input type="time" id="new-start"></div>
+                        <div class="edit-field"><label>End time</label><input type="time" id="new-end"></div>
+                        <button class="btn" id="create-submit">Create</button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                modal.querySelector('.close-modal').onclick = () => modal.remove();
+                document.getElementById('create-submit').onclick = () => {
+                    const subject = document.getElementById('new-subject').value;
+                    const date = document.getElementById('new-date').value;
+                    const startTime = document.getElementById('new-start').value;
+                    const endTime = document.getElementById('new-end').value;
+                    if (!subject || !date || !startTime || !endTime) return alert('All fields required');
+                    const start = new Date(`${date}T${startTime}`);
+                    const end = new Date(`${date}T${endTime}`);
+                    const newClass = {
+                        id: 'c' + Date.now(),
+                        subject, date, startTime, endTime,
+                        start: start.toISOString(),
+                        end: end.toISOString(),
+                        createdBy: currentUser.username,
+                        staffName: currentUser.name
+                    };
+                    const classes = load(STORAGE_KEYS.CLASSES, []);
+                    classes.push(newClass);
+                    save(STORAGE_KEYS.CLASSES, classes);
+                    modal.remove();
+                    renderStaffDashboard();
+                };
+            }
+
+            // ---------- Admin Dashboard (unchanged) ----------
+            function renderAdminDashboard() {
+                const app = document.getElementById('app');
+                app.innerHTML = `
+                    <div class="dashboard" style="flex-direction:column;">
+                        <div style="display:flex; justify-content:flex-end; padding:20px 40px;">
+                            <div class="logout-btn" id="logout" style="margin:0;"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                        </div>
+                        <div class="main-content" id="admin-main"></div>
+                    </div>
+                `;
+                document.getElementById('logout').addEventListener('click', logoutHandler);
+                const main = document.getElementById('admin-main');
+                const classes = load(STORAGE_KEYS.CLASSES, []);
+                const attendance = load(STORAGE_KEYS.ATTENDANCE, {});
+                const users = load(STORAGE_KEYS.USERS, []);
+                const students = users.filter(u => u.role === 'student');
+                const staffs = users.filter(u => u.role === 'staff');
+                main.innerHTML = `
+                    <div class="admin-row">
+                        <div class="admin-col"><h3>📅 Classes & attendance</h3>${classes.map(c => `<div class="info-box">${c.subject} (${c.date}) - 👥 ${attendance[c.id]?.length || 0} attended</div>`).join('')}</div>
+                        <div class="admin-col"><h3>🧑‍🎓 Students</h3>${students.map(s => `<div class="student-item">${s.name} (${s.username}) <i class="fas fa-edit edit-student-icon" data-user="${s.username}" style="cursor:pointer;"></i></div>`).join('')}</div>
+                        <div class="admin-col"><h3>👩‍🏫 Staff</h3>${staffs.map(st => `<div class="student-item">${st.name} (${st.username}) <i class="fas fa-edit edit-staff-icon" data-user="${st.username}" style="cursor:pointer;"></i></div>`).join('')}</div>
+                    </div>
+                `;
+                document.querySelectorAll('.edit-student-icon').forEach(icon => icon.addEventListener('click', () => openEditStudentModal(icon.dataset.user)));
+                document.querySelectorAll('.edit-staff-icon').forEach(icon => {
+                    icon.addEventListener('click', () => {
+                        const username = icon.dataset.user;
+                        const profiles = load(STORAGE_KEYS.PROFILES, {});
+                        const prof = profiles[username] || {};
+                        const modal = document.createElement('div');
+                        modal.className = 'modal active';
+                        modal.innerHTML = `
+                            <div class="modal-content">
+                                <span class="close-modal">&times;</span>
+                                <h3>Edit Staff ${username}</h3>
+                                <div class="edit-field"><label>Name</label><input id="modal-name" value="${prof.name || ''}"></div>
+                                <div class="edit-field"><label>Phone</label><input id="modal-phone" value="${prof.phone || ''}"></div>
+                                <button class="btn" id="modal-save">Save</button>
+                            </div>
+                        `;
+                        document.body.appendChild(modal);
+                        modal.querySelector('.close-modal').onclick = () => modal.remove();
+                        modal.querySelector('#modal-save').onclick = () => {
+                            prof.name = document.getElementById('modal-name').value;
+                            prof.phone = document.getElementById('modal-phone').value;
+                            profiles[username] = prof;
+                            save(STORAGE_KEYS.PROFILES, profiles);
+                            modal.remove();
+                            alert('Staff updated');
+                        };
+                    });
+                });
+            }
+
+            function logoutHandler() {
+                if (faceDetectionInterval) clearInterval(faceDetectionInterval);
+                if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+                localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+                currentUser = null;
+                currentView = 'home';
+                renderApp();
+            }
+
+            renderApp();
+        })();
+    </script>
+</body>
+</html>
